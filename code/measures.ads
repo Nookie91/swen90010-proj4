@@ -3,7 +3,8 @@ package Measures is
 
    -- The type for user identities
    MAX_USERID : constant Integer := 100;
-   type UserID is new Integer range -1 .. MAX_USERID;
+   NO_USER : constant Integer := -1;
+   type UserID is new Integer range NO_USER .. MAX_USERID;
 
    -- The type for heart rate: beats per minute
    MAX_BPM : constant Integer := 300;

@@ -72,7 +72,7 @@ pred CreateUser [ams, ams' : AMS, userID: one UserID] {
 // Update, remove, and read insurer information for a specific user
 pred SetInsurer [ams, ams' : AMS, wearer, insurer, requester : UserID] {
     wearer+insurer in ams.users
-    ams'.insurers = ams.insurers + (wearer->insurer)
+    ams'.insurers = ams.insurers ++ (wearer->insurer)
     wearer = requester
 
     // Unchanged

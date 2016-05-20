@@ -32,7 +32,7 @@ is
    -- account management system.
    type AMS is
       record
-         -- The set of current users.
+         -- The set of current users, excluding the emergency user.
          Users : UserSet;
 
          -- Records each user's friend, insurer
@@ -64,19 +64,19 @@ is
    -- It also tracks the emergency services user, alerting them when
    -- appropriate.
    --
-   -- To ensure correct behaviour, the Init procedure must be called before
-   -- the package is used.
+   -- To ensure correct behaviour, the Init function must be called to
+   -- initialise an AMS object.
    --
    -- All functions and procedures assume that all UserIDs passed in as
    -- arguments have previously been returned by CreateUser, with the
    -- exception of Users.EMERGENCY_SERVICES_ID, which may always be passed in.
    -- If this assumption is violated, the result is unspecified.
 
-   procedure Init(TheAMS : AMS);
-   -- Init initialises the package, preparing it for future use, including
+   function Init return AMS with
+      Post => (for all uid in UserID => not Init'Result.Users(uid));
+
+   -- Init initialises an AMS instance, preparing it for future use, including
    -- creating the emergency services user.
-   -- May raise a Storage_Error if there is no room for the emergency services
-   -- user.
 
    ---------------------------------------------------------------------
 
@@ -84,7 +84,7 @@ is
    -- Creates a new user, returning their UserID.
    --
    -- If a new user cannot be created with a unique UserID,
-   -- Users.NO_USER will be returned.
+   -- Measures.NO_USER will be returned.
 
    ---------------------------------------------------------------------
 
@@ -193,14 +193,14 @@ is
    -- * a user is allowed to choose any permission scheme they wish for
    --   reading their data, subject to the above constraints.
 
-   function ReadVitals(TheAMS : in out AMS;
+   function ReadVitals(TheAMS : in AMS;
                        Requester : in UserID;
                        TargetUser : in UserID)
                        return BPM;
    -- Reads the vital statistics of the specified target user,
    -- if the requester has permission to read that statistic.
 
-   function ReadFootsteps(TheAMS : in out AMS;
+   function ReadFootsteps(TheAMS : in AMS;
                           Requester : in UserID;
                           TargetUser : in UserID)
                           return Footsteps;
@@ -213,7 +213,7 @@ is
    -- This means a user's insurance provider is **always** allowed to read
    -- their footsteps, regardless of the user's permission preferences.
 
-   function ReadLocation(TheAMS : in out AMS;
+   function ReadLocation(TheAMS : in AMS;
                          Requester : in UserID;
                          TargetUser : in UserID)
                          return GPSLocation;
@@ -222,7 +222,7 @@ is
 
    ---------------------------------------------------------------------
 
-   procedure ContactEmergency(TheAMS : in out AMS;
+   procedure ContactEmergency(TheAMS : in AMS;
                               Wearer : in UserID;
                               Location : in GPSLocation;
                               Vitals : in BPM);
