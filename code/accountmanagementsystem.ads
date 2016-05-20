@@ -83,7 +83,9 @@ is
 
    ---------------------------------------------------------------------
 
-   procedure CreateUser(TheAMS : in out AMS; NewUser : out UserID);
+   procedure CreateUser(TheAMS : in out AMS; NewUser : out UserID) with
+      Pre => (not TheAMS.Users(NewUser));
+
    -- Creates a new user, returning their UserID.
    --
    -- If a new user cannot be created with a unique UserID,

@@ -12,6 +12,8 @@ is
       for UID in UserID loop
          AnAMS.Users(UID) := False;
       end loop;
+
+      -- TODO fix not initialised stuff
       return AnAMS;
    end Init;
 

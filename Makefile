@@ -17,10 +17,10 @@ $(BUILDDIR):
 $(OUTDIR):
 	mkdir $(OUTDIR)
 
-$(BUILDDIR)/%: $(SRCDIR)/% $(BUILDDIR)
+$(BUILDDIR)/%: $(SRCDIR)/%
 	ln -s $< $@
 
-prove: | $(MAINDEPS)
+prove: | $(BUILDDIR) $(MAINDEPS)
 	cd $(BUILDDIR) && gnatprove -P default -u $(THESIS)
 
 .PHONY: prove clean
