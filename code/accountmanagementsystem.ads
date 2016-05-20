@@ -3,6 +3,28 @@ with Measures; use Measures;
 package AccountManagementSystem with
    SPARK_Mode => On
 is
+   -- AccountManagementSystem is a package to manage user accounts
+   -- for the FatBat system.
+   --
+   -- It maintains a collection of users, tracking for each:
+   --
+   -- * their friend and insurance provider
+   -- * their vital signs
+   -- * their location
+   -- * their footstep count
+   --
+   -- It also tracks the emergency services user, alerting them when
+   -- appropriate.
+   --
+   -- To ensure correct behaviour, the Init function must be called to
+   -- initialise an AMS object.
+   --
+   -- All functions and procedures assume that all UserIDs passed in as
+   -- arguments have previously been returned by CreateUser, with the
+   -- exception of Users.EMERGENCY_SERVICES_ID, which may always be passed in.
+   -- If this assumption is violated, the result is unspecified.
+
+   ---------------------------------------------------------------------
 
    -- Users can have contacts of two types:
    -- * friends
@@ -28,7 +50,7 @@ is
    type ContactTypeSet is array (ContactType) of Boolean;
    type PermissionSet is array (UserID) of ContactTypeSet;
 
-   -- An AMS instance encapsulates all the state tracked by the
+   -- An AMS instance holds all the state tracked by the
    -- account management system.
    type AMS is
       record
@@ -51,26 +73,7 @@ is
          locationPermissions : PermissionSet;
       end record;
 
-   -- AccountManagementSystem is a package to manage user accounts
-   -- for the FatBat system.
-   --
-   -- It maintains a collection of users, tracking for each:
-   --
-   -- * their friend and insurance provider
-   -- * their vital signs
-   -- * their location
-   -- * their footstep count
-   --
-   -- It also tracks the emergency services user, alerting them when
-   -- appropriate.
-   --
-   -- To ensure correct behaviour, the Init function must be called to
-   -- initialise an AMS object.
-   --
-   -- All functions and procedures assume that all UserIDs passed in as
-   -- arguments have previously been returned by CreateUser, with the
-   -- exception of Users.EMERGENCY_SERVICES_ID, which may always be passed in.
-   -- If this assumption is violated, the result is unspecified.
+   ---------------------------------------------------------------------
 
    function Init return AMS with
       Post => (for all uid in UserID => not Init'Result.Users(uid));
