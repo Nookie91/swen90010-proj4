@@ -61,31 +61,97 @@ is
          Friends : UserMap;
          Insurers : UserMap;
 
-         -- Records each user's relevant data
+         -- Records each user's relevant data, as well as whether
+         -- or not that data is initialised.
          Footsteps : FootstepsMap;
+         FootstepsInitialised : UserSet;
          Vitals : VitalsMap;
+         VitalsInitialised : UserSet;
          Locations : LocationsMap;
+         LocationsInitialised : UserSet;
 
          -- Records for each user the permissions given for each
          -- data type and role. Many to many.
-         footstepsPermissions : PermissionSet;
-         vitalsPermissions : PermissionSet;
-         locationPermissions : PermissionSet;
+         FootstepsPermissions : PermissionSet;
+         VitalsPermissions : PermissionSet;
+         LocationPermissions : PermissionSet;
       end record;
 
    ---------------------------------------------------------------------
 
    function Init return AMS with
-      Post => (for all uid in UserID => not Init'Result.Users(uid));
+      -- The AMS must initially be empty.
+      Post => (
+         for all uid in UserID => (
+            not Init'Result.Users(uid) and
 
+            -- Not explicit in the Alloy model, but we can't use
+            -- AMS.Users as an array range in Ada, so they other arrays
+            -- can't implicitly have 'good' default values, so we need to
+            -- specify the default value of the other arrays.
+
+            -- Initially, users have no friend or insurer, ...
+            Init'Result.Friends(uid) = NO_USER and
+            Init'Result.Insurers(uid) = NO_USER and
+
+            -- ... they have no initialised data, and...
+            not Init'Result.FootstepsInitialised(uid) and
+            not Init'Result.VitalsInitialised(uid) and
+            not Init'Result.LocationsInitialised(uid) and
+
+            -- ... they have given no permissions to anyone, but all
+            -- users give their insurer permission to read footsteps
+            -- by default.
+            Init'Result.FootstepsPermissions(uid)(Insurer) and
+            not Init'Result.FootstepsPermissions(uid)(Friend) and
+            not Init'Result.VitalsPermissions(uid)(Insurer) and
+            not Init'Result.VitalsPermissions(uid)(Friend) and
+            not Init'Result.LocationPermissions(uid)(Insurer) and
+            not Init'Result.LocationPermissions(uid)(Friend)
+         )
+      );
    -- Init initialises an AMS instance, preparing it for future use, including
    -- creating the emergency services user.
 
    ---------------------------------------------------------------------
 
    procedure CreateUser(TheAMS : in out AMS; NewUser : out UserID) with
-      Pre => (not TheAMS.Users(NewUser));
+      Pre => (not TheAMS.Users(NO_USER)),
+      Post =>
+         (TheAMS.Users(NewUser) xor NewUser = NO_USER) and (
+         for all uid in UserID => (
+            (if (NewUser /= uid) then
+               (TheAMS.Users(uid) = TheAMS'Old.Users(uid))) and
 
+            -- Initially, users have no friend or insurer, ...
+            TheAMS.Friends(uid) = TheAMS'Old.Friends(uid) and
+            TheAMS.Insurers(uid) = TheAMS'Old.Insurers(uid) and
+
+            -- ... they have no initialised data, and...
+            TheAMS.FootstepsInitialised(uid) =
+               TheAMS'Old.FootstepsInitialised(uid) and
+            TheAMS.VitalsInitialised(uid) =
+               TheAMS'Old.VitalsInitialised(uid) and
+            TheAMS.LocationsInitialised(uid) =
+               TheAMS'Old.LocationsInitialised(uid) and
+
+            -- ... they have given no permissions to anyone, but all
+            -- users give their insurer permission to read footsteps
+            -- by default.
+            TheAMS.FootstepsPermissions(uid)(Insurer) =
+               TheAMS'Old.FootstepsPermissions(uid)(Insurer) and
+            TheAMS.FootstepsPermissions(uid)(Friend) =
+               TheAMS'Old.FootstepsPermissions(uid)(Friend) and
+            TheAMS.VitalsPermissions(uid)(Insurer) =
+               TheAMS'Old.VitalsPermissions(uid)(Insurer) and
+            TheAMS.VitalsPermissions(uid)(Friend) =
+               TheAMS'Old.VitalsPermissions(uid)(Friend) and
+            TheAMS.LocationPermissions(uid)(Insurer) =
+               TheAMS'Old.LocationPermissions(uid)(Insurer) and
+            TheAMS.LocationPermissions(uid)(Friend) =
+               TheAMS'Old.LocationPermissions(uid)(Friend)
+         )
+      );
    -- Creates a new user, returning their UserID.
    --
    -- If a new user cannot be created with a unique UserID,

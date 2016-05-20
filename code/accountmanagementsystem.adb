@@ -21,7 +21,19 @@ is
 
    procedure CreateUser(TheAMS : in out AMS; NewUser : out UserID) is
    begin
-      null; -- TODO
+      -- Find an unused UserID, if one exists.
+      NewUser := NO_USER;
+      for UID in UserID loop
+         if (not TheAMS.Users(UID)) and (UID /= EMERGENCY_SERVICES) then
+            NewUser := UID;
+         end if;
+         exit when NewUser /= NO_USER;
+      end loop;
+
+      -- If we found an unused UserID, mark that user as existing.
+      if NewUser /= NO_USER then
+         TheAMS.Users(NewUser) := True;
+      end if;
    end CreateUser;
 
    ---------------------------------------------------------------------
