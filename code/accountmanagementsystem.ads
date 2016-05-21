@@ -26,13 +26,13 @@ is
 
    ---------------------------------------------------------------------
 
-   -- Users can have contacts of two types:
+   -- Users can have contacts of three types:
+   -- * emergency services
    -- * friends
    -- * insurers
    --
-   -- Emergency services do not count as a contact type,
-   -- since the emergency services user is the same for everyone.
-   type ContactType is (Friend, Insurer);
+   -- Note: a user's emergency services contact is always user 0.
+   type ContactType is (Friend, Insurer, Emergency);
 
    -- A type to record which users exist.
    type UserSet is array (UserID) of Boolean;
@@ -561,12 +561,35 @@ is
 
    ---------------------------------------------------------------------
 
-   procedure ContactEmergency(TheAMS : in AMS;
-                              Wearer : in UserID;
-                              Location : in GPSLocation;
-                              Vitals : in BPM);
+   procedure HandleCardiacArrest(TheAMS : in out AMS;
+                                 Wearer : in UserID;
+                                 Location : in GPSLocation;
+                                 Vitals : in BPM)
    -- Checks if the Wearer has given the emergency services user permission
    -- to read their vitals.
    -- If and only if so, stores the vitals and location data within
    -- this user, and sends a message via the Emergency package.
+   with
+      Pre => (TheAMS.Users.Exists(Wearer)),
+      -- The Wearer must exist.
+
+      Post =>
+         -- Emergency services must be contacted and the location
+         -- and vitals must be saved, all if and only if the wearer
+         -- has given Emergency services permission to read their vitals.
+         -- Note: I'm not sure how to express the calling of emergency
+         -- services in a SPARK contract, so I'm leaving it out.
+         (if TheAMS.Permissions.Vitals(Wearer)(Emergency) then (
+            (TheAMS.Data.Locations =
+               TheAMS'Old.Data.Locations'Update(Wearer => Location)) and
+            (TheAMS.Data.Vitals =
+               TheAMS'Old.Data.Vitals'Update(Wearer => Vitals)) and
+            (TheAMS.Data.Footsteps = TheAMS'Old.Data.Footsteps)
+         ) else (
+            TheAMS.Data = TheAMS'Old.Data
+         )) and
+
+         -- No other changes may take place.
+         (TheAMS.Users = TheAMS'Old.Users) and
+         (TheAMS.Permissions = TheAMS'Old.Permissions);
 end AccountManagementSystem;

@@ -1,4 +1,5 @@
 with Measures; use Measures;
+with Emergency; use Emergency;
 
 package body AccountManagementSystem with
    SPARK_Mode => On
@@ -182,11 +183,11 @@ is
 
    ---------------------------------------------------------------------
 
-   procedure ContactEmergency(TheAMS : in AMS;
-                              Wearer : in UserID;
-                              Location : in GPSLocation;
-                              Vitals : in BPM) is
+   procedure HandleCardiacArrest(TheAMS : in out AMS;
+                                 Wearer : in UserID;
+                                 Location : in GPSLocation;
+                                 Vitals : in BPM) is
    begin
-      null; -- TODO
-   end ContactEmergency;
+      ContactEmergency(Wearer, Vitals, Location);
+   end HandleCardiacArrest;
 end AccountManagementSystem;
