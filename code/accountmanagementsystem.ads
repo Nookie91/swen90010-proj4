@@ -100,8 +100,8 @@ is
    -- Init initialises an AMS instance, preparing it for future use, including
    -- creating the emergency services user.
    with
-      -- The AMS must initially be empty.
       Post => (
+         -- The AMS must initially be empty.
          for all uid in UserID => (
             not Init'Result.Users.Exists(uid) and
 
@@ -174,22 +174,19 @@ is
          (Wearer = Requester),
 
       Post =>
+         -- The Wearer's insurer must have been set.
          (TheAMS.Users.Insurer(Wearer) = NewInsurer) and
-         (TheAMS.Data = TheAMS'Old.Data) and
-         (TheAMS.Permissions = TheAMS'Old.Permissions) and (
-
-         -- TheAMS should otherwise be unchanged.
-         for all uid in UserID => (
-            (TheAMS.Users.Exists(uid) = TheAMS'Old.Users.Exists(uid)) and
-
-            TheAMS.Users.Friend(uid) = TheAMS'Old.Users.Friend(uid) and
-
+         (for all uid in UserID => (
             -- Only the wearer's insurer may have changed.
             (if (Wearer /= uid) then
                TheAMS.Users.Insurer(uid) = TheAMS'Old.Users.Insurer(uid))
-         )
+         )) and
 
-      );
+         -- TheAMS should otherwise be unchanged.
+         (TheAMS.Users.Exists = TheAMS'Old.Users.Exists) and
+         (TheAMS.Users.Friend = TheAMS'Old.Users.Friend) and
+         (TheAMS.Data = TheAMS'Old.Data) and
+         (TheAMS.Permissions = TheAMS'Old.Permissions);
 
    function ReadInsurer(TheAMS : in AMS;
                         Requester : in UserID;
@@ -197,37 +194,111 @@ is
                         return UserID
       -- Returns the insurer of the specified Wearer.
    with
+      Pre => (TheAMS.Users.Exists(Wearer)) and (Wearer = Requester),
       -- We can only read the insurer of existing wearers,
       -- and they can only read their own insurer.
-      Pre => (TheAMS.Users.Exists(Wearer)) and (Wearer = Requester),
 
       Post => (TheAMS.Users.Insurer(Wearer) = ReadInsurer'Result);
-      -- TheAMS should implicitly be unchagned since it's
+      -- Note: TheAMS should implicitly be unchanged since it's
       -- an in parameter.
 
    procedure RemoveInsurer(TheAMS : in out AMS;
                            Requester : in UserID;
-                           Wearer : in UserID);
-   -- Sets the specified Wearer to having no insurer.
+                           Wearer : in UserID)
+      -- Sets the specified Wearer to having no insurer.
+   with
+      Pre =>
+         -- We can only remove the insurer of existing wearers
+         -- with insurers, and they can only remove their own insurer.
+         (TheAMS.Users.Exists(Wearer)) and
+         (Wearer = Requester) and
+         (TheAMS.Users.Insurer(Wearer) /= NO_USER),
+
+      Post =>
+         -- The Wearer's insurer must be removed.
+         (TheAMS.Users.Insurer(Wearer) = NO_USER) and
+         (for all uid in UserID => (
+            -- Only the wearer's insurer may have changed.
+            (if (Wearer /= uid) then
+               TheAMS.Users.Insurer(uid) = TheAMS'Old.Users.Insurer(uid))
+         )) and
+
+         -- TheAMS should otherwise be unchanged.
+         (TheAMS.Users.Exists = TheAMS'Old.Users.Exists) and
+         (TheAMS.Users.Friend = TheAMS'Old.Users.Friend) and
+         (TheAMS.Data = TheAMS'Old.Data) and
+         (TheAMS.Permissions = TheAMS'Old.Permissions);
 
    ---------------------------------------------------------------------
 
    procedure SetFriend(TheAMS : in out AMS;
                        Requester : in UserID;
                        Wearer : in UserID;
-                       NewFriend : in UserID);
-   -- Sets the specified Friend as the friend of the Wearer.
+                       NewFriend : in UserID)
+      -- Sets the specified Friend as the friend of the Wearer.
+   with
+      Pre =>
+         -- We can only set the friend for existing wearers,
+         -- and they can only set their own friend.
+         (TheAMS.Users.Exists(Wearer)) and
+         (TheAMS.Users.Exists(NewFriend)) and
+         (Wearer = Requester),
+
+      Post =>
+         -- The Wearer's friend must have been set.
+         (TheAMS.Users.Friend(Wearer) = NewFriend) and
+         (for all uid in UserID => (
+            -- Only the wearer's insurer may have changed.
+            (if (Wearer /= uid) then
+               TheAMS.Users.Friend(uid) = TheAMS'Old.Users.Friend(uid))
+         )) and
+
+         -- TheAMS should otherwise be unchanged.
+         (TheAMS.Users.Exists = TheAMS'Old.Users.Exists) and
+         (TheAMS.Users.Insurer = TheAMS'Old.Users.Insurer) and
+         (TheAMS.Data = TheAMS'Old.Data) and
+         (TheAMS.Permissions = TheAMS'Old.Permissions);
 
    function ReadFriend(TheAMS : in AMS;
                        Requester : in UserID;
                        Wearer : in UserID)
-                       return UserID;
+                       return UserID
    -- Returns the friend of the specified Wearer.
+   with
+      Pre => (TheAMS.Users.Exists(Wearer)) and (Wearer = Requester),
+      -- We can only read the friend of existing wearers,
+      -- and they can only read their own friend.
+
+      Post => (TheAMS.Users.Friend(Wearer) = ReadFriend'Result);
+      -- Note: TheAMS should implicitly be unchanged since it's
+      -- an in parameter.
 
    procedure RemoveFriend(TheAMS : in out AMS;
                           Requester : in UserID;
-                          Wearer : in UserID);
+                          Wearer : in UserID)
    -- Sets the specified Wearer to having no friend.
+   with
+      Pre =>
+         -- We can only remove the friend of existing wearers
+         -- with friends, and they can only remove their own friend.
+         (TheAMS.Users.Exists(Wearer)) and
+         (Wearer = Requester) and
+         (TheAMS.Users.Friend(Wearer) /= NO_USER),
+
+      Post =>
+         -- The Wearer's friend must be removed.
+         (TheAMS.Users.Friend(Wearer) = NO_USER) and
+         (for all uid in UserID => (
+            -- Only the wearer's friend may have changed.
+            (if (Wearer /= uid) then
+               TheAMS.Users.Friend(uid) = TheAMS'Old.Users.Friend(uid))
+         )) and
+
+         -- TheAMS should otherwise be unchanged.
+         (TheAMS.Users.Exists = TheAMS'Old.Users.Exists) and
+         (TheAMS.Users.Insurer = TheAMS'Old.Users.Insurer) and
+         (TheAMS.Data = TheAMS'Old.Data) and
+         (TheAMS.Permissions = TheAMS'Old.Permissions);
 
    ---------------------------------------------------------------------
 

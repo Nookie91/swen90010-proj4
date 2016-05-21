@@ -125,7 +125,7 @@ pred RemoveFriend [ams, ams' : AMS, wearer, requester : UserID] {
     PermissionsUnchanged [ams, ams']
 }
 
-pred ReadInsurer [ams : AMS, wearer, requester : UserID, friend : lone UserID] {
+pred ReadFriend [ams : AMS, wearer, requester : UserID, friend : lone UserID] {
     wearer = requester
 
     friend = ams.friends[wearer]
