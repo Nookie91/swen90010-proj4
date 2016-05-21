@@ -90,42 +90,42 @@ is
 
    procedure AddVitalsPermission(TheAMS : in out AMS;
                                  Wearer : in UserID;
-                                 TypeOfContact : in ContactType) is
+                                 Contact : in ContactType) is
    begin
       null; -- TODO
    end AddVitalsPermission;
 
    procedure RemoveVitalsPermission(TheAMS : in out AMS;
                                     Wearer : in UserID;
-                                    TypeOfContact : in ContactType) is
+                                    Contact : in ContactType) is
    begin
       null; -- TODO
    end RemoveVitalsPermission;
 
    procedure AddFootstepsPermission(TheAMS : in out AMS;
                                     Wearer : in UserID;
-                                    TypeOfContact : in ContactType) is
+                                    Contact : in ContactType) is
    begin
       null; -- TODO
    end AddFootstepsPermission;
 
    procedure RemoveFootstepsPermission(TheAMS : in out AMS;
                                        Wearer : in UserID;
-                                       TypeOfContact : in ContactType) is
+                                       Contact : in ContactType) is
    begin
       null; -- TODO
    end RemoveFootstepsPermission;
 
    procedure AddLocationPermission(TheAMS : in out AMS;
                                    Wearer : in UserID;
-                                   TypeOfContact : in ContactType) is
+                                   Contact : in ContactType) is
    begin
       null; -- TODO
    end AddLocationPermission;
 
    procedure RemoveLocationPermission(TheAMS : in out AMS;
                                       Wearer : in UserID;
-                                      TypeOfContact : in ContactType) is
+                                      Contact : in ContactType) is
    begin
       null; -- TODO
    end RemoveLocationPermission;
