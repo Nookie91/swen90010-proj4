@@ -159,7 +159,7 @@ is
 
    function ReadVitals(TheAMS : in AMS;
                        Requester : in UserID;
-                       TargetUser : in UserID)
+                       Wearer : in UserID)
                        return BPM is
    begin
       return -1; -- TODO
@@ -167,7 +167,7 @@ is
 
    function ReadFootsteps(TheAMS : in AMS;
                           Requester : in UserID;
-                          TargetUser : in UserID)
+                          Wearer : in UserID)
                           return Footsteps is
    begin
       return 0; -- TODO
@@ -175,7 +175,7 @@ is
 
    function ReadLocation(TheAMS : in AMS;
                          Requester : in UserID;
-                         TargetUser : in UserID)
+                         Wearer : in UserID)
                          return GPSLocation is
    begin
       return (Lat => 0.0, Long => 0.0); -- TODO

@@ -21,7 +21,7 @@ is
    --
    -- All functions and procedures assume that all UserIDs passed in as
    -- arguments have previously been returned by CreateUser, with the
-   -- exception of Users.EMERGENCY_SERVICES_ID, which may always be passed in.
+   -- exception of Users.EMERGENCY_SERVICES, which may always be passed in.
    -- If this assumption is violated, the result is unspecified.
 
    ---------------------------------------------------------------------
@@ -103,7 +103,8 @@ is
       Post =>
          -- The AMS must initially be empty.
          (for all uid in UserID => (
-            not Init'Result.Users.Exists(uid) and
+            (uid /= EMERGENCY_SERVICES xor Init'Result.Users.Exists(uid)) and
+            -- The Emergency Services user must exist.
 
             -- Most of these predicates aren't explicit in the Alloy model,
             -- but we can't use
@@ -140,6 +141,9 @@ is
    with
       Pre => (not TheAMS.Users.Exists(NO_USER)),
       Post =>
+         -- The new user must not have existed before.
+         (not TheAMS'Old.Users.Exists(NewUser)) and
+
          -- The new user should be registered, iff they were
          -- successfully added.
          (NewUser = NO_USER xor TheAMS.Users.Exists(NewUser)) and (
@@ -149,6 +153,7 @@ is
                -- Only the new user's existence may have changed.
                (if (NewUser /= uid) then
                   (TheAMS.Users.Exists(uid) = TheAMS'Old.Users.Exists(uid)) and
+                  -- Users must permit their insurers to access their footsteps.
                   (TheAMS.Permissions.Footsteps(uid) =
                      TheAMS'Old.Permissions.Footsteps(uid)'Update(
                         Insurer => True))
@@ -597,30 +602,83 @@ is
 
    function ReadVitals(TheAMS : in AMS;
                        Requester : in UserID;
-                       TargetUser : in UserID)
-                       return BPM;
-   -- Reads the vital statistics of the specified target user,
-   -- if the requester has permission to read that statistic.
+                       Wearer : in UserID)
+                       return BPM
+      -- Reads the vital statistics of the specified target user,
+      -- if the requester has permission to read that statistic.
+   with
+      Pre =>
+         -- We can only read the vitals of existing wearers,
+         (TheAMS.Users.Exists(Wearer)) and
+         ((
+            TheAMS.Users.Insurer(Wearer) = Requester and
+            TheAMS.Permissions.Vitals(Wearer)(Insurer)
+         ) or (
+            TheAMS.Users.Friend(Wearer) = Requester and
+            TheAMS.Permissions.Vitals(Wearer)(Friend)
+         ) or (
+            EMERGENCY_SERVICES = Requester and
+            TheAMS.Permissions.Vitals(Wearer)(Emergency)
+         )),
+
+      Post => (TheAMS.Data.Vitals(Wearer) = ReadVitals'Result);
+      -- Note: TheAMS should implicitly be unchanged since it's
+      -- an in parameter.
 
    function ReadFootsteps(TheAMS : in AMS;
                           Requester : in UserID;
-                          TargetUser : in UserID)
-                          return Footsteps;
-   -- Reads the footstep count of the specified target user,
-   -- if the requester has permission to read that statistic.
-   --
-   -- Assumes the intended interpretation of requirement R3.6 is
-   -- "The system must allow a user with (permission as a user's insurance
-   -- provider) to read that user's footsteps."
-   -- This means a user's insurance provider is **always** allowed to read
-   -- their footsteps, regardless of the user's permission preferences.
+                          Wearer : in UserID)
+                          return Footsteps
+      -- Reads the footstep count of the specified target user,
+      -- if the requester has permission to read that statistic.
+      --
+      -- Assumes the intended interpretation of requirement R3.6 is
+      -- "The system must allow a user with (permission as a user's insurance
+      -- provider) to read that user's footsteps."
+      -- This means a user's insurance provider is **always** allowed to read
+      -- their footsteps, regardless of the user's permission preferences.
+   with
+      Pre =>
+         -- We can only read the footsteps of existing wearers,
+         (TheAMS.Users.Exists(Wearer)) and
+         ((
+            TheAMS.Users.Insurer(Wearer) = Requester
+         ) or (
+            TheAMS.Users.Friend(Wearer) = Requester and
+            TheAMS.Permissions.Footsteps(Wearer)(Friend)
+         ) or (
+            EMERGENCY_SERVICES = Requester and
+            TheAMS.Permissions.Footsteps(Wearer)(Emergency)
+         )),
+
+      Post => (TheAMS.Data.Footsteps(Wearer) = ReadFootsteps'Result);
+      -- Note: TheAMS should implicitly be unchanged since it's
+      -- an in parameter.
 
    function ReadLocation(TheAMS : in AMS;
                          Requester : in UserID;
-                         TargetUser : in UserID)
-                         return GPSLocation;
-   -- Reads the location of the specified target user,
-   -- if the requester has permission to read that statistic.
+                         Wearer : in UserID)
+                         return GPSLocation
+      -- Reads the location of the specified target user,
+      -- if the requester has permission to read that statistic.
+   with
+      Pre =>
+         -- We can only read the location of existing wearers,
+         (TheAMS.Users.Exists(Wearer)) and
+         ((
+            TheAMS.Users.Insurer(Wearer) = Requester and
+            TheAMS.Permissions.Location(Wearer)(Insurer)
+         ) or (
+            TheAMS.Users.Friend(Wearer) = Requester and
+            TheAMS.Permissions.Location(Wearer)(Friend)
+         ) or (
+            EMERGENCY_SERVICES = Requester and
+            TheAMS.Permissions.Location(Wearer)(Emergency)
+         )),
+
+      Post => (TheAMS.Data.Location(Wearer) = ReadLocation'Result);
+      -- Note: TheAMS should implicitly be unchanged since it's
+      -- an in parameter.
 
    ---------------------------------------------------------------------
 
