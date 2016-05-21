@@ -43,7 +43,7 @@ is
    -- Types to record data for users.
    type FootstepsMap is array (UserID) of Footsteps;
    type VitalsMap is array (UserID) of BPM;
-   type LocationsMap is array (UserID) of GPSLocation;
+   type LocationMap is array (UserID) of GPSLocation;
 
    -- Types to record permissions given by each user to each type of
    -- contact.
@@ -72,8 +72,8 @@ is
          Vitals : VitalsMap;
          VitalsInitialised : UserSet;
 
-         Locations : LocationsMap;
-         LocationsInitialised : UserSet;
+         Location : LocationMap;
+         LocationInitialised : UserSet;
       end record;
 
    -- Permissions stores the the permissions data for all
@@ -100,12 +100,13 @@ is
    -- Init initialises an AMS instance, preparing it for future use, including
    -- creating the emergency services user.
    with
-      Post => (
+      Post =>
          -- The AMS must initially be empty.
-         for all uid in UserID => (
+         (for all uid in UserID => (
             not Init'Result.Users.Exists(uid) and
 
-            -- Not explicit in the Alloy model, but we can't use
+            -- Most of these predicates aren't explicit in the Alloy model,
+            -- but we can't use
             -- AMS.Users as an array range in Ada, so they other arrays
             -- can't be implicitly 'empty', so we need to
             -- specify the default value of the other arrays.
@@ -117,19 +118,17 @@ is
             -- ... they have no initialised data, and...
             not Init'Result.Data.FootstepsInitialised(uid) and
             not Init'Result.Data.VitalsInitialised(uid) and
-            not Init'Result.Data.LocationsInitialised(uid) and
+            not Init'Result.Data.LocationInitialised(uid) and
 
             -- ... they have given no permissions to anyone, except all
             -- users give their insurer permission to read footsteps
             -- by default.
-            Init'Result.Permissions.Footsteps(uid)(Insurer) and
             (for all ct in ContactType => (
                not Init'Result.Permissions.Vitals(uid)(ct) and
                not Init'Result.Permissions.Location(uid)(ct) and
-               (ct /= Insurer xor Init'Result.Permissions.Footsteps(uid)(ct))
+               not Init'Result.Permissions.Footsteps(uid)(ct)
             ))
-         )
-      );
+         ));
 
    ---------------------------------------------------------------------
 
@@ -149,7 +148,14 @@ is
             for all uid in UserID => (
                -- Only the new user's existence may have changed.
                (if (NewUser /= uid) then
-                  (TheAMS.Users.Exists(uid) = TheAMS'Old.Users.Exists(uid))) and
+                  (TheAMS.Users.Exists(uid) = TheAMS'Old.Users.Exists(uid)) and
+                  (TheAMS.Permissions.Footsteps(uid) =
+                     TheAMS'Old.Permissions.Footsteps(uid)'Update(
+                        Insurer => True))
+               else (
+                  TheAMS.Permissions.Footsteps(uid) =
+                     TheAMS'Old.Permissions.Footsteps(uid)
+               )) and
 
                TheAMS.Users.Friend(uid) = TheAMS'Old.Users.Friend(uid) and
                TheAMS.Users.Insurer(uid) = TheAMS'Old.Users.Insurer(uid)
@@ -504,18 +510,75 @@ is
 
    procedure UpdateVitals(TheAMS : in out AMS;
                           Wearer : in UserID;
-                          NewVitals : in BPM);
-   -- Updates the vital statistics of the specified user.
+                          NewVitals : in BPM)
+      -- Updates the vital statistics of the specified user.
+   with
+      Pre => (TheAMS.Users.Exists(Wearer)),
+      -- The Wearer must exist.
+
+      Post =>
+         -- The vitals value must be stored.
+         (TheAMS.Data.Vitals(Wearer) = NewVitals) and
+
+         -- No other vitals data may have been changed.
+         (for all uid in UserID => (
+            if uid /= Wearer then
+               (TheAMS.Data.Vitals(uid) = TheAMS'Old.Data.Vitals(uid))
+         )) and
+
+         -- TheAMS should otherwise be unchanged.
+         (TheAMS.Data.Footsteps = TheAMS'Old.Data.Footsteps) and
+         (TheAMS.Data.Location = TheAMS'Old.Data.Location) and
+         (TheAMS.Users = TheAMS'Old.Users) and
+         (TheAMS.Permissions = TheAMS'Old.Permissions);
 
    procedure UpdateFootsteps(TheAMS : in out AMS;
                              Wearer : in UserID;
-                             NewFootsteps : in Footsteps);
+                             NewFootsteps : in Footsteps)
    -- Updates the footstep count of the specified user.
+   with
+      Pre => (TheAMS.Users.Exists(Wearer)),
+      -- The Wearer must exist.
+
+      Post =>
+         -- The footsteps value must be stored.
+         (TheAMS.Data.Footsteps(Wearer) = NewFootsteps) and
+
+         -- No other footsteps data may have been changed.
+         (for all uid in UserID => (
+            if uid /= Wearer then
+               (TheAMS.Data.Footsteps(uid) = TheAMS'Old.Data.Footsteps(uid))
+         )) and
+
+         -- TheAMS should otherwise be unchanged.
+         (TheAMS.Data.Location = TheAMS'Old.Data.Location) and
+         (TheAMS.Data.Vitals = TheAMS'Old.Data.Vitals) and
+         (TheAMS.Users = TheAMS'Old.Users) and
+         (TheAMS.Permissions = TheAMS'Old.Permissions);
 
    procedure UpdateLocation(TheAMS : in out AMS;
                             Wearer : in UserID;
-                            NewLocation : in GPSLocation);
+                            NewLocation : in GPSLocation)
    -- Updates the location of the specified user.
+   with
+      Pre => (TheAMS.Users.Exists(Wearer)),
+      -- The Wearer must exist.
+
+      Post =>
+         -- The location value must be stored.
+         (TheAMS.Data.Location(Wearer) = NewLocation) and
+
+         -- No other location data may have been changed.
+         (for all uid in UserID => (
+            if uid /= Wearer then
+               (TheAMS.Data.Location(uid) = TheAMS'Old.Data.Location(uid))
+         )) and
+
+         -- TheAMS should otherwise be unchanged.
+         (TheAMS.Data.Footsteps = TheAMS'Old.Data.Footsteps) and
+         (TheAMS.Data.Vitals = TheAMS'Old.Data.Vitals) and
+         (TheAMS.Users = TheAMS'Old.Users) and
+         (TheAMS.Permissions = TheAMS'Old.Permissions);
 
    ---------------------------------------------------------------------
    -- Each of these functions interprets conflicting requirements with the
@@ -580,8 +643,8 @@ is
          -- Note: I'm not sure how to express the calling of emergency
          -- services in a SPARK contract, so I'm leaving it out.
          (if TheAMS.Permissions.Vitals(Wearer)(Emergency) then (
-            (TheAMS.Data.Locations =
-               TheAMS'Old.Data.Locations'Update(Wearer => Location)) and
+            (TheAMS.Data.Location =
+               TheAMS'Old.Data.Location'Update(Wearer => Location)) and
             (TheAMS.Data.Vitals =
                TheAMS'Old.Data.Vitals'Update(Wearer => Vitals)) and
             (TheAMS.Data.Footsteps = TheAMS'Old.Data.Footsteps)
@@ -592,4 +655,5 @@ is
          -- No other changes may take place.
          (TheAMS.Users = TheAMS'Old.Users) and
          (TheAMS.Permissions = TheAMS'Old.Permissions);
+
 end AccountManagementSystem;
