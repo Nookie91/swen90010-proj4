@@ -304,32 +304,168 @@ is
 
    procedure AddVitalsPermission(TheAMS : in out AMS;
                                  Wearer : in UserID;
-                                 Contact : in ContactType);
+                                 Contact : in ContactType)
       -- Allows the specified type of contact to access the wearer's vitals.
+   with
+      Pre => (TheAMS.Users.Exists(Wearer)),
+      -- The Wearer must exist.
+
+      Post =>
+         -- The specified vitals permission must be present.
+         (TheAMS.Permissions.Vitals(Wearer)(Contact)) and
+
+         -- No other vitals permission may have been changed.
+         (for all uid in UserID => (
+            if uid /= Wearer then
+               (TheAMS.Permissions.Vitals(uid) =
+                  TheAMS'Old.Permissions.Vitals(uid))
+            else (
+               for all ct in ContactType => (
+                  if ct /= Contact then
+                     (TheAMS.Permissions.Vitals(uid)(Contact) =
+                        TheAMS'Old.Permissions.Vitals(uid)(Contact))
+               )
+            )
+         )) and
+
+         -- TheAMS should otherwise be unchanged.
+         (TheAMS.Permissions.Location = TheAMS'Old.Permissions.Location) and
+         (TheAMS.Permissions.Footsteps = TheAMS'Old.Permissions.Footsteps) and
+         (TheAMS.Users = TheAMS'Old.Users) and
+         (TheAMS.Data = TheAMS'Old.Data);
 
    procedure RemoveVitalsPermission(TheAMS : in out AMS;
                                     Wearer : in UserID;
-                                    Contact : in ContactType);
+                                    Contact : in ContactType)
       -- Prevents the specified type of contact from accessing the wearer's
       -- vitals.
+   with
+      Pre => (TheAMS.Users.Exists(Wearer)),
+      -- The Wearer must exist.
+
+      Post =>
+         -- The specified Vitals permission must not be present.
+         (not TheAMS.Permissions.Vitals(Wearer)(Contact)) and
+
+         -- No other Vitals permission may have been changed.
+         (for all uid in UserID => (
+            if uid /= Wearer then
+               (TheAMS.Permissions.Vitals(uid) =
+                  TheAMS'Old.Permissions.Vitals(uid))
+            else (
+               for all ct in ContactType => (
+                  if ct /= Contact then
+                     (TheAMS.Permissions.Vitals(uid)(Contact) =
+                        TheAMS'Old.Permissions.Vitals(uid)(Contact))
+               )
+            )
+         )) and
+
+         -- TheAMS should otherwise be unchanged.
+         (TheAMS.Permissions.Location = TheAMS'Old.Permissions.Location) and
+         (TheAMS.Permissions.Footsteps = TheAMS'Old.Permissions.Footsteps) and
+         (TheAMS.Users = TheAMS'Old.Users) and
+         (TheAMS.Data = TheAMS'Old.Data);
 
    procedure AddFootstepsPermission(TheAMS : in out AMS;
                                     Wearer : in UserID;
-                                    Contact : in ContactType);
+                                    Contact : in ContactType)
       -- Allows the specified type of contact to access the wearer's footstep
       -- data.
+   with
+      Pre => (TheAMS.Users.Exists(Wearer)),
+      -- The Wearer must exist.
+
+      Post =>
+         -- The specified footsteps permission must be present.
+         (TheAMS.Permissions.Footsteps(Wearer)(Contact)) and
+
+         -- No other footsteps permission may have been changed.
+         (for all uid in UserID => (
+            if uid /= Wearer then
+               (TheAMS.Permissions.Footsteps(uid) =
+                  TheAMS'Old.Permissions.Footsteps(uid))
+            else (
+               for all ct in ContactType => (
+                  if ct /= Contact then
+                     (TheAMS.Permissions.Footsteps(uid)(Contact) =
+                        TheAMS'Old.Permissions.Footsteps(uid)(Contact))
+               )
+            )
+         )) and
+
+         -- TheAMS should otherwise be unchanged.
+         (TheAMS.Permissions.Location = TheAMS'Old.Permissions.Location) and
+         (TheAMS.Permissions.Vitals = TheAMS'Old.Permissions.Vitals) and
+         (TheAMS.Users = TheAMS'Old.Users) and
+         (TheAMS.Data = TheAMS'Old.Data);
 
    procedure RemoveFootstepsPermission(TheAMS : in out AMS;
                                        Wearer : in UserID;
-                                       Contact : in ContactType);
+                                       Contact : in ContactType)
       -- Prevents the specified type of contact from accessing the wearer's
       -- footstep data.
+   with
+      Pre => (TheAMS.Users.Exists(Wearer)) and (Contact /= Insurer),
+      -- The Wearer must exist and the insurer must always be able to
+      -- read footsteps.
+
+      Post =>
+         -- The specified footsteps permission must not be present.
+         (not TheAMS.Permissions.Footsteps(Wearer)(Contact)) and
+
+         -- No other footsteps permission may have been changed.
+         (for all uid in UserID => (
+            if uid /= Wearer then
+               (TheAMS.Permissions.Footsteps(uid) =
+                  TheAMS'Old.Permissions.Footsteps(uid))
+            else (
+               for all ct in ContactType => (
+                  if ct /= Contact then
+                     (TheAMS.Permissions.Footsteps(uid)(Contact) =
+                        TheAMS'Old.Permissions.Footsteps(uid)(Contact))
+               )
+            )
+         )) and
+
+         -- TheAMS should otherwise be unchanged.
+         (TheAMS.Permissions.Location = TheAMS'Old.Permissions.Location) and
+         (TheAMS.Permissions.Vitals = TheAMS'Old.Permissions.Vitals) and
+         (TheAMS.Users = TheAMS'Old.Users) and
+         (TheAMS.Data = TheAMS'Old.Data);
 
    procedure AddLocationPermission(TheAMS : in out AMS;
                                    Wearer : in UserID;
-                                   Contact : in ContactType);
+                                   Contact : in ContactType)
       -- Allows the specified type of contact to access the wearer's location
       -- data.
+   with
+      Pre => (TheAMS.Users.Exists(Wearer)),
+      -- The Wearer must exist.
+
+      Post =>
+         -- The specified location permission must be present.
+         (TheAMS.Permissions.Location(Wearer)(Contact)) and
+
+         -- No other location permission may have been changed.
+         (for all uid in UserID => (
+            if uid /= Wearer then
+               (TheAMS.Permissions.Location(uid) =
+                  TheAMS'Old.Permissions.Location(uid))
+            else (
+               for all ct in ContactType => (
+                  if ct /= Contact then
+                     (TheAMS.Permissions.Location(uid)(Contact) =
+                        TheAMS'Old.Permissions.Location(uid)(Contact))
+               )
+            )
+         )) and
+
+         -- TheAMS should otherwise be unchanged.
+         (TheAMS.Permissions.Footsteps = TheAMS'Old.Permissions.Footsteps) and
+         (TheAMS.Permissions.Vitals = TheAMS'Old.Permissions.Vitals) and
+         (TheAMS.Users = TheAMS'Old.Users) and
+         (TheAMS.Data = TheAMS'Old.Data);
 
    procedure RemoveLocationPermission(TheAMS : in out AMS;
                                       Wearer : in UserID;
@@ -341,7 +477,7 @@ is
       -- The Wearer must exist.
 
       Post =>
-         -- The specified location permission must have been removed.
+         -- The specified location permission must not be present.
          (not TheAMS.Permissions.Location(Wearer)(Contact)) and
 
          -- No other location permission may have been changed.
