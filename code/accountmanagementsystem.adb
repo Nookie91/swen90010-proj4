@@ -25,15 +25,18 @@ is
       -- Find an unused UserID, if one exists.
       NewUser := NO_USER;
       for UID in UserID loop
-         if (not TheAMS.Users.Exists(UID)) and (UID /= EMERGENCY_SERVICES) then
+         if not TheAMS.Users.Exists(UID) and UID /= EMERGENCY_SERVICES then
             NewUser := UID;
          end if;
          exit when NewUser /= NO_USER;
+         pragma Loop_Invariant (not TheAMS.Users.Exists(NewUser) and
+                                NewUser /= EMERGENCY_SERVICES);
       end loop;
 
       -- If we found an unused UserID, mark that user as existing.
       if NewUser /= NO_USER then
          TheAMS.Users.Exists(NewUser) := True;
+         TheAMS.Permissions.Footsteps(NewUser)(Insurer) := True;
       end if;
    end CreateUser;
 

@@ -18,11 +18,6 @@ is
    --
    -- To ensure correct behaviour, the Init function must be called to
    -- initialise an AMS object.
-   --
-   -- All functions and procedures assume that all UserIDs passed in as
-   -- arguments have previously been returned by CreateUser, with the
-   -- exception of Users.EMERGENCY_SERVICES, which may always be passed in.
-   -- If this assumption is violated, the result is unspecified.
 
    ---------------------------------------------------------------------
 
@@ -144,30 +139,42 @@ is
          -- The new user must not have existed before.
          (not TheAMS'Old.Users.Exists(NewUser)) and
 
+         -- The new user may not be EMERGENCY_SERVICES.
+         (NewUser /= EMERGENCY_SERVICES) and
+
          -- The new user should be registered, iff they were
          -- successfully added.
-         (NewUser = NO_USER xor TheAMS.Users.Exists(NewUser)) and (
+         (if NewUser = NO_USER then (
+            TheAMS = TheAMS'Old
+         ) else (
+            -- The user should now exist and should allow their insurer
+            -- to access their footsteps.
+            (TheAMS.Users.Exists(NewUser)) and
+            (TheAMS.Permissions.Footsteps(NewUser)(Insurer)) and
+
+            -- The user's other permissions should be unchanged.
+            (for all ct in ContactType => (
+               if ct /= Insurer then
+                  (TheAMS.Permissions.Footsteps(NewUser)(ct) =
+                     TheAMS'Old.Permissions.Footsteps(NewUser)(ct))
+            )) and
 
             -- TheAMS should otherwise be unchanged.
-            for all uid in UserID => (
-               -- Only the new user's existence may have changed.
+            (for all uid in UserID => (
+               -- Only the new user's existence and footsteps permissions
+               -- may have changed.
                (if (NewUser /= uid) then
                   (TheAMS.Users.Exists(uid) = TheAMS'Old.Users.Exists(uid)) and
-                  -- Users must permit their insurers to access their footsteps.
                   (TheAMS.Permissions.Footsteps(uid) =
-                     TheAMS'Old.Permissions.Footsteps(uid)'Update(
-                        Insurer => True))
-               else (
-                  TheAMS.Permissions.Footsteps(uid) =
-                     TheAMS'Old.Permissions.Footsteps(uid)
-               )) and
-
-               TheAMS.Users.Friend(uid) = TheAMS'Old.Users.Friend(uid) and
+                     TheAMS'Old.Permissions.Footsteps(uid))
+               ) and
                TheAMS.Users.Insurer(uid) = TheAMS'Old.Users.Insurer(uid)
-            ) and
+            )) and
+            (TheAMS.Users.Friend = TheAMS'Old.Users.Friend) and
             (TheAMS.Data = TheAMS'Old.Data) and
-            (TheAMS.Permissions = TheAMS'Old.Permissions)
-         );
+            (TheAMS.Permissions.Location = TheAMS'Old.Permissions.Location) and
+            (TheAMS.Permissions.Vitals = TheAMS'Old.Permissions.Vitals)
+         ));
 
    ---------------------------------------------------------------------
 
