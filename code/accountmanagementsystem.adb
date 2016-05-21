@@ -10,7 +10,7 @@ is
       -- Ensure that the AMS starts out with no users,
       -- bar the emergency user, who is not tracked in AMS.Users.
       for UID in UserID loop
-         AnAMS.Users(UID) := False;
+         AnAMS.Users.Exists(UID) := False;
       end loop;
 
       -- TODO fix not initialised stuff
@@ -24,7 +24,7 @@ is
       -- Find an unused UserID, if one exists.
       NewUser := NO_USER;
       for UID in UserID loop
-         if (not TheAMS.Users(UID)) and (UID /= EMERGENCY_SERVICES) then
+         if (not TheAMS.Users.Exists(UID)) and (UID /= EMERGENCY_SERVICES) then
             NewUser := UID;
          end if;
          exit when NewUser /= NO_USER;
@@ -32,7 +32,7 @@ is
 
       -- If we found an unused UserID, mark that user as existing.
       if NewUser /= NO_USER then
-         TheAMS.Users(NewUser) := True;
+         TheAMS.Users.Exists(NewUser) := True;
       end if;
    end CreateUser;
 
@@ -41,7 +41,7 @@ is
    procedure SetInsurer(TheAMS : in out AMS;
                         Requester : in UserID;
                         Wearer : in UserID;
-                        Insurer : in UserID) is
+                        NewInsurer : in UserID) is
    begin
       null; -- TODO
    end SetInsurer;

@@ -50,126 +50,160 @@ is
    type ContactTypeSet is array (ContactType) of Boolean;
    type PermissionSet is array (UserID) of ContactTypeSet;
 
+   -- Users stores data about which users exist and how they're
+   -- related to each other.
+   type UsersRecord is
+      record
+         -- The set of current users, excluding the emergency user.
+         Exists : UserSet;
+
+         -- Records each user's friend, insurer
+         Friend : UserMap;
+         Insurer : UserMap;
+      end record;
+
+   -- Data stores the relevant data for all users, including
+   -- whether it is initialised.
+   type DataRecord is
+      record
+         Footsteps : FootstepsMap;
+         FootstepsInitialised : UserSet;
+
+         Vitals : VitalsMap;
+         VitalsInitialised : UserSet;
+
+         Locations : LocationsMap;
+         LocationsInitialised : UserSet;
+      end record;
+
+   -- Permissions stores the the permissions data for all
+   -- users, data types, and contact types.
+   type PermissionsRecord is
+      record
+         Footsteps : PermissionSet;
+         Vitals : PermissionSet;
+         Location : PermissionSet;
+      end record;
+
    -- An AMS instance holds all the state tracked by the
    -- account management system.
    type AMS is
       record
-         -- The set of current users, excluding the emergency user.
-         Users : UserSet;
-
-         -- Records each user's friend, insurer
-         Friends : UserMap;
-         Insurers : UserMap;
-
-         -- Records each user's relevant data, as well as whether
-         -- or not that data is initialised.
-         Footsteps : FootstepsMap;
-         FootstepsInitialised : UserSet;
-         Vitals : VitalsMap;
-         VitalsInitialised : UserSet;
-         Locations : LocationsMap;
-         LocationsInitialised : UserSet;
-
-         -- Records for each user the permissions given for each
-         -- data type and role. Many to many.
-         FootstepsPermissions : PermissionSet;
-         VitalsPermissions : PermissionSet;
-         LocationPermissions : PermissionSet;
+         Users : UsersRecord;
+         Data : DataRecord;
+         Permissions : PermissionsRecord;
       end record;
 
    ---------------------------------------------------------------------
 
-   function Init return AMS with
+   function Init return AMS
+   -- Init initialises an AMS instance, preparing it for future use, including
+   -- creating the emergency services user.
+   with
       -- The AMS must initially be empty.
       Post => (
          for all uid in UserID => (
-            not Init'Result.Users(uid) and
+            not Init'Result.Users.Exists(uid) and
 
             -- Not explicit in the Alloy model, but we can't use
             -- AMS.Users as an array range in Ada, so they other arrays
-            -- can't implicitly have 'good' default values, so we need to
+            -- can't be implicitly 'empty', so we need to
             -- specify the default value of the other arrays.
 
             -- Initially, users have no friend or insurer, ...
-            Init'Result.Friends(uid) = NO_USER and
-            Init'Result.Insurers(uid) = NO_USER and
+            Init'Result.Users.Friend(uid) = NO_USER and
+            Init'Result.Users.Insurer(uid) = NO_USER and
 
             -- ... they have no initialised data, and...
-            not Init'Result.FootstepsInitialised(uid) and
-            not Init'Result.VitalsInitialised(uid) and
-            not Init'Result.LocationsInitialised(uid) and
+            not Init'Result.Data.FootstepsInitialised(uid) and
+            not Init'Result.Data.VitalsInitialised(uid) and
+            not Init'Result.Data.LocationsInitialised(uid) and
 
             -- ... they have given no permissions to anyone, but all
             -- users give their insurer permission to read footsteps
             -- by default.
-            Init'Result.FootstepsPermissions(uid)(Insurer) and
-            not Init'Result.FootstepsPermissions(uid)(Friend) and
-            not Init'Result.VitalsPermissions(uid)(Insurer) and
-            not Init'Result.VitalsPermissions(uid)(Friend) and
-            not Init'Result.LocationPermissions(uid)(Insurer) and
-            not Init'Result.LocationPermissions(uid)(Friend)
+            Init'Result.Permissions.Footsteps(uid)(Insurer) and
+            not Init'Result.Permissions.Footsteps(uid)(Friend) and
+            not Init'Result.Permissions.Vitals(uid)(Insurer) and
+            not Init'Result.Permissions.Vitals(uid)(Friend) and
+            not Init'Result.Permissions.Location(uid)(Insurer) and
+            not Init'Result.Permissions.Location(uid)(Friend)
          )
       );
-   -- Init initialises an AMS instance, preparing it for future use, including
-   -- creating the emergency services user.
 
    ---------------------------------------------------------------------
 
-   procedure CreateUser(TheAMS : in out AMS; NewUser : out UserID) with
-      Pre => (not TheAMS.Users(NO_USER)),
+   procedure CreateUser(TheAMS : in out AMS; NewUser : out UserID)
+      -- Creates a new user, returning their UserID.
+      --
+      -- If a new user cannot be created with a unique UserID,
+      -- Measures.NO_USER will be returned.
+   with
+      Pre => (not TheAMS.Users.Exists(NO_USER)),
       Post =>
-         (TheAMS.Users(NewUser) xor NewUser = NO_USER) and (
-         for all uid in UserID => (
-            (if (NewUser /= uid) then
-               (TheAMS.Users(uid) = TheAMS'Old.Users(uid))) and
+         -- The new user should be registered, iff they were
+         -- successfully added.
+         (NewUser = NO_USER xor TheAMS.Users.Exists(NewUser)) and (
 
-            -- Initially, users have no friend or insurer, ...
-            TheAMS.Friends(uid) = TheAMS'Old.Friends(uid) and
-            TheAMS.Insurers(uid) = TheAMS'Old.Insurers(uid) and
+            -- TheAMS should otherwise be unchanged.
+            for all uid in UserID => (
+               -- Only the new user's existence may have changed.
+               (if (NewUser /= uid) then
+                  (TheAMS.Users.Exists(uid) = TheAMS'Old.Users.Exists(uid))) and
 
-            -- ... they have no initialised data, and...
-            TheAMS.FootstepsInitialised(uid) =
-               TheAMS'Old.FootstepsInitialised(uid) and
-            TheAMS.VitalsInitialised(uid) =
-               TheAMS'Old.VitalsInitialised(uid) and
-            TheAMS.LocationsInitialised(uid) =
-               TheAMS'Old.LocationsInitialised(uid) and
-
-            -- ... they have given no permissions to anyone, but all
-            -- users give their insurer permission to read footsteps
-            -- by default.
-            TheAMS.FootstepsPermissions(uid)(Insurer) =
-               TheAMS'Old.FootstepsPermissions(uid)(Insurer) and
-            TheAMS.FootstepsPermissions(uid)(Friend) =
-               TheAMS'Old.FootstepsPermissions(uid)(Friend) and
-            TheAMS.VitalsPermissions(uid)(Insurer) =
-               TheAMS'Old.VitalsPermissions(uid)(Insurer) and
-            TheAMS.VitalsPermissions(uid)(Friend) =
-               TheAMS'Old.VitalsPermissions(uid)(Friend) and
-            TheAMS.LocationPermissions(uid)(Insurer) =
-               TheAMS'Old.LocationPermissions(uid)(Insurer) and
-            TheAMS.LocationPermissions(uid)(Friend) =
-               TheAMS'Old.LocationPermissions(uid)(Friend)
-         )
-      );
-   -- Creates a new user, returning their UserID.
-   --
-   -- If a new user cannot be created with a unique UserID,
-   -- Measures.NO_USER will be returned.
+               TheAMS.Users.Friend(uid) = TheAMS'Old.Users.Friend(uid) and
+               TheAMS.Users.Insurer(uid) = TheAMS'Old.Users.Insurer(uid)
+            ) and
+            (TheAMS.Data = TheAMS'Old.Data) and
+            (TheAMS.Permissions = TheAMS'Old.Permissions)
+         );
 
    ---------------------------------------------------------------------
 
    procedure SetInsurer(TheAMS : in out AMS;
                         Requester : in UserID;
                         Wearer : in UserID;
-                        Insurer : in UserID);
-   -- Sets the specified Insurer as the insurer of the Wearer.
+                        NewInsurer : in UserID)
+      -- Sets the specified NewInsurer as the insurer of the Wearer.
+   with
+      Pre =>
+         -- We can only set the insurer for existing wearers,
+         -- and they can only set their own insurer.
+         (TheAMS.Users.Exists(Wearer)) and
+         (TheAMS.Users.Exists(NewInsurer)) and
+         (Wearer = Requester),
+
+      Post =>
+         (TheAMS.Users.Insurer(Wearer) = NewInsurer) and
+         (TheAMS.Data = TheAMS'Old.Data) and
+         (TheAMS.Permissions = TheAMS'Old.Permissions) and (
+
+         -- TheAMS should otherwise be unchanged.
+         for all uid in UserID => (
+            (TheAMS.Users.Exists(uid) = TheAMS'Old.Users.Exists(uid)) and
+
+            TheAMS.Users.Friend(uid) = TheAMS'Old.Users.Friend(uid) and
+
+            -- Only the wearer's insurer may have changed.
+            (if (Wearer /= uid) then
+               TheAMS.Users.Insurer(uid) = TheAMS'Old.Users.Insurer(uid))
+         )
+
+      );
 
    function ReadInsurer(TheAMS : in AMS;
                         Requester : in UserID;
                         Wearer : in UserID)
-                        return UserID;
-   -- Returns the insurer of the specified Wearer.
+                        return UserID
+      -- Returns the insurer of the specified Wearer.
+   with
+      -- We can only read the insurer of existing wearers,
+      -- and they can only read their own insurer.
+      Pre => (TheAMS.Users.Exists(Wearer)) and (Wearer = Requester),
+
+      Post => (TheAMS.Users.Insurer(Wearer) = ReadInsurer'Result);
+      -- TheAMS should implicitly be unchagned since it's
+      -- an in parameter.
 
    procedure RemoveInsurer(TheAMS : in out AMS;
                            Requester : in UserID;
