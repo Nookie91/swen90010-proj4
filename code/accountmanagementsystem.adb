@@ -10,11 +10,24 @@ is
    begin
       -- Ensure that the AMS starts out with no users,
       -- bar the emergency user, who is not tracked in AMS.Users.
-      for UID in UserID loop
-         AnAMS.Users.Exists(UID) := False;
-      end loop;
 
-      -- TODO fix not initialised stuff
+     AnAMS.Users.Exists := (others => False);
+     AnAMS.Users.Exists(EMERGENCY_SERVICES) := True;
+     AnAMS.Users.Friend := (others => NO_USER);
+     AnAMS.Users.Insurer := (others => NO_USER);
+
+     AnAMS.Permissions.Vitals := (others => (others => False));
+     AnAMS.Permissions.Location := (others => (others => False));
+     AnAMS.Permissions.Footsteps := (others => (others => False));
+
+     AnAMS.Data.Vitals := (others => -1);
+     AnAMS.Data.VitalsInitialised := (others => False);
+     AnAMS.Data.Location := (others => (Lat => 0.0, Long => 0.0));
+     AnAMS.Data.LocationInitialised := (others => False);
+     AnAMS.Data.Footsteps := (others => 0);
+     AnAMS.Data.FootstepsInitialised := (others => False);
+
+
       return AnAMS;
    end Init;
 
@@ -47,7 +60,7 @@ is
                         Wearer : in UserID;
                         NewInsurer : in UserID) is
    begin
-      null; -- TODO
+      TheAMS.Users.Insurer(Wearer) := NewInsurer;
    end SetInsurer;
 
    function ReadInsurer(TheAMS : in AMS;
@@ -55,14 +68,14 @@ is
                         Wearer : in UserID)
                         return UserID is
    begin
-      return -1; -- TODO
+      return TheAMS.Users.Insurer(Wearer);
    end ReadInsurer;
 
    procedure RemoveInsurer(TheAMS : in out AMS;
                            Requester : in UserID;
                            Wearer : in UserID) is
    begin
-      null; -- TODO
+       TheAMS.Users.Insurer(Wearer) := NO_USER;
    end RemoveInsurer;
 
    ---------------------------------------------------------------------
@@ -72,7 +85,7 @@ is
                        Wearer : in UserID;
                        NewFriend : in UserID) is
    begin
-      null; -- TODO
+      TheAMS.Users.Friend(Wearer) := NewFriend;
    end SetFriend;
 
    function ReadFriend(TheAMS : in AMS;
@@ -80,14 +93,14 @@ is
                        Wearer : in UserID)
                        return UserID is
    begin
-      return -1; -- TODO
+       return TheAMS.Users.Friend(Wearer);
    end ReadFriend;
 
    procedure RemoveFriend(TheAMS : in out AMS;
                           Requester : in UserID;
                           Wearer : in UserID) is
    begin
-      null; -- TODO
+       TheAMS.Users.Friend(Wearer) := NO_USER;
    end RemoveFriend;
 
    ---------------------------------------------------------------------
@@ -96,42 +109,42 @@ is
                                  Wearer : in UserID;
                                  Contact : in ContactType) is
    begin
-      null; -- TODO
+        TheAMS.Permissions.Vitals(Wearer)(Contact) := True;
    end AddVitalsPermission;
 
    procedure RemoveVitalsPermission(TheAMS : in out AMS;
                                     Wearer : in UserID;
                                     Contact : in ContactType) is
    begin
-      null; -- TODO
+       TheAMS.Permissions.Vitals(Wearer)(Contact) := False;
    end RemoveVitalsPermission;
 
    procedure AddFootstepsPermission(TheAMS : in out AMS;
                                     Wearer : in UserID;
                                     Contact : in ContactType) is
    begin
-      null; -- TODO
+      TheAMS.Permissions.Footsteps(Wearer)(Contact) := True;
    end AddFootstepsPermission;
 
    procedure RemoveFootstepsPermission(TheAMS : in out AMS;
                                        Wearer : in UserID;
                                        Contact : in ContactType) is
    begin
-      null; -- TODO
+      TheAMS.Permissions.Footsteps(Wearer)(Contact) := False;
    end RemoveFootstepsPermission;
 
    procedure AddLocationPermission(TheAMS : in out AMS;
                                    Wearer : in UserID;
                                    Contact : in ContactType) is
    begin
-      null; -- TODO
+      TheAMS.Permissions.Location(Wearer)(Contact) := True;
    end AddLocationPermission;
 
    procedure RemoveLocationPermission(TheAMS : in out AMS;
                                       Wearer : in UserID;
                                       Contact : in ContactType) is
    begin
-      null; -- TODO
+      TheAMS.Permissions.Location(Wearer)(Contact) := False;
    end RemoveLocationPermission;
 
    ---------------------------------------------------------------------
@@ -141,21 +154,24 @@ is
                           NewVitals : in BPM)
    is
    begin
-      null; -- TODO
+      TheAMS.Data.Vitals(Wearer) := NewVitals;
+      TheAMS.Data.VitalsInitialised(Wearer) := True;
    end UpdateVitals;
 
    procedure UpdateFootsteps(TheAMS : in out AMS;
                              Wearer : in UserID;
                              NewFootsteps : in Footsteps) is
    begin
-      null; -- TODO
+      TheAMS.Data.Footsteps(Wearer) := NewFootsteps;
+      TheAMS.Data.FootstepsInitialised(Wearer) := True;
    end UpdateFootsteps;
 
    procedure UpdateLocation(TheAMS : in out AMS;
                             Wearer : in UserID;
                             NewLocation : in GPSLocation) is
    begin
-      null; -- TODO
+      TheAMS.Data.Location(Wearer) := NewLocation;
+      TheAMS.Data.LocationInitialised(Wearer) := True;
    end UpdateLocation;
 
    ---------------------------------------------------------------------
@@ -165,7 +181,7 @@ is
                        Wearer : in UserID)
                        return BPM is
    begin
-      return -1; -- TODO
+      return TheAMS.Data.Vitals(Wearer);
    end ReadVitals;
 
    function ReadFootsteps(TheAMS : in AMS;
@@ -173,7 +189,7 @@ is
                           Wearer : in UserID)
                           return Footsteps is
    begin
-      return 0; -- TODO
+      return TheAMS.Data.Footsteps(Wearer);
    end ReadFootsteps;
 
    function ReadLocation(TheAMS : in AMS;
@@ -181,7 +197,7 @@ is
                          Wearer : in UserID)
                          return GPSLocation is
    begin
-      return (Lat => 0.0, Long => 0.0); -- TODO
+      return TheAMS.Data.Location(Wearer);
    end ReadLocation;
 
    ---------------------------------------------------------------------
@@ -191,6 +207,10 @@ is
                                  Location : in GPSLocation;
                                  Vitals : in BPM) is
    begin
-      ContactEmergency(Wearer, Vitals, Location);
+        if TheAMS.Permissions.Vitals(Wearer)(Emergency) then
+            TheAMS.Data.Vitals(Wearer) := Vitals;
+            TheAMS.Data.Location(Wearer) := Location;
+            ContactEmergency(Wearer, Vitals, Location);
+        end if;
    end HandleCardiacArrest;
 end AccountManagementSystem;

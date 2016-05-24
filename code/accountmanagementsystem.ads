@@ -340,8 +340,8 @@ is
             else (
                for all ct in ContactType => (
                   if ct /= Contact then
-                     (TheAMS.Permissions.Vitals(uid)(Contact) =
-                        TheAMS'Old.Permissions.Vitals(uid)(Contact))
+                     (TheAMS.Permissions.Vitals(uid)(ct) =
+                        TheAMS'Old.Permissions.Vitals(uid)(ct))
                )
             )
          )) and
@@ -373,8 +373,8 @@ is
             else (
                for all ct in ContactType => (
                   if ct /= Contact then
-                     (TheAMS.Permissions.Vitals(uid)(Contact) =
-                        TheAMS'Old.Permissions.Vitals(uid)(Contact))
+                     (TheAMS.Permissions.Vitals(uid)(ct) =
+                        TheAMS'Old.Permissions.Vitals(uid)(ct))
                )
             )
          )) and
@@ -406,8 +406,8 @@ is
             else (
                for all ct in ContactType => (
                   if ct /= Contact then
-                     (TheAMS.Permissions.Footsteps(uid)(Contact) =
-                        TheAMS'Old.Permissions.Footsteps(uid)(Contact))
+                     (TheAMS.Permissions.Footsteps(uid)(ct) =
+                        TheAMS'Old.Permissions.Footsteps(uid)(ct))
                )
             )
          )) and
@@ -440,8 +440,8 @@ is
             else (
                for all ct in ContactType => (
                   if ct /= Contact then
-                     (TheAMS.Permissions.Footsteps(uid)(Contact) =
-                        TheAMS'Old.Permissions.Footsteps(uid)(Contact))
+                     (TheAMS.Permissions.Footsteps(uid)(ct) =
+                        TheAMS'Old.Permissions.Footsteps(uid)(ct))
                )
             )
          )) and
@@ -473,8 +473,8 @@ is
             else (
                for all ct in ContactType => (
                   if ct /= Contact then
-                     (TheAMS.Permissions.Location(uid)(Contact) =
-                        TheAMS'Old.Permissions.Location(uid)(Contact))
+                     (TheAMS.Permissions.Location(uid)(ct) =
+                        TheAMS'Old.Permissions.Location(uid)(ct))
                )
             )
          )) and
@@ -506,8 +506,8 @@ is
             else (
                for all ct in ContactType => (
                   if ct /= Contact then
-                     (TheAMS.Permissions.Location(uid)(Contact) =
-                        TheAMS'Old.Permissions.Location(uid)(Contact))
+                     (TheAMS.Permissions.Location(uid)(ct) =
+                        TheAMS'Old.Permissions.Location(uid)(ct))
                )
             )
          )) and
@@ -530,6 +530,7 @@ is
 
       Post =>
          -- The vitals value must be stored.
+         (TheAMS.Data.VitalsInitialised(Wearer)) and 
          (TheAMS.Data.Vitals(Wearer) = NewVitals) and
 
          -- No other vitals data may have been changed.
@@ -554,6 +555,7 @@ is
 
       Post =>
          -- The footsteps value must be stored.
+         (TheAMS.Data.FootstepsInitialised(Wearer)) and
          (TheAMS.Data.Footsteps(Wearer) = NewFootsteps) and
 
          -- No other footsteps data may have been changed.
@@ -578,6 +580,7 @@ is
 
       Post =>
          -- The location value must be stored.
+         (TheAMS.Data.LocationInitialised(Wearer)) and
          (TheAMS.Data.Location(Wearer) = NewLocation) and
 
          -- No other location data may have been changed.
@@ -616,6 +619,7 @@ is
    with
       Pre =>
          -- We can only read the vitals of existing wearers,
+         (TheAMS.Data.VitalsInitialised(Wearer)) and
          (TheAMS.Users.Exists(Wearer)) and
          ((
             TheAMS.Users.Insurer(Wearer) = Requester and
@@ -647,6 +651,7 @@ is
    with
       Pre =>
          -- We can only read the footsteps of existing wearers,
+         (TheAMS.Data.FootstepsInitialised(Wearer)) and
          (TheAMS.Users.Exists(Wearer)) and
          ((
             TheAMS.Users.Insurer(Wearer) = Requester
@@ -671,6 +676,7 @@ is
    with
       Pre =>
          -- We can only read the location of existing wearers,
+         (TheAMS.Data.LocationInitialised(Wearer)) and
          (TheAMS.Users.Exists(Wearer)) and
          ((
             TheAMS.Users.Insurer(Wearer) = Requester and
